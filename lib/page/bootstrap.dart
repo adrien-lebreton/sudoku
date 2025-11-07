@@ -3,7 +3,7 @@ import 'dart:isolate';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/sudoku_localizations.dart';
+import 'package:sudoku/l10n/sudoku_localizations.dart';
 import 'package:logger/logger.dart' hide Level;
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:scoped_model/scoped_model.dart';
