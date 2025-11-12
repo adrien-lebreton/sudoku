@@ -12,7 +12,7 @@ A open source Sudoku game application powered by Flutter .
 
 you can build the Sudoku Game just  for your own.
 
-Download apk for android (preview) -> [github release page](https://github.com/einsitang/sudoku-flutter/releases)
+Download apk for android (preview) -> [github release page](https://github.com/adrien-lebreton/sudoku/releases)
 
 
 
@@ -102,7 +102,7 @@ see the [Flutter](https://flutter.dev/) official website
 
 ## star history
 
-[![Star History Chart](https://api.star-history.com/svg?repos=einsitang/sudoku-flutter&type=Date)](https://star-history.com/#einsitang/sudoku-flutter&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=adrien-lebreton/sudoku&type=Date)](https://star-history.com/#adrien-lebreton/sudoku&Date)
 
 ## the end
 
