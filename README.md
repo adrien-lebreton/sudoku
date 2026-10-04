@@ -1,7 +1,6 @@
 # Sudoku  
 
 [![License](https://img.shields.io/badge/License-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Page Views Count](https://badges.toozhao.com/badges/01EH7R7D3FTYMYYSYDEFCTS251/green.svg)](https://badges.toozhao.com/badges/01EH7R7D3FTYMYYSYDEFCTS251/green.svg "Get your own page views count badge on badges.toozhao.com")
-[![Codemagic build status](https://api.codemagic.io/apps/645f5680356332a7b6c82326/sudoku-flutter-workflow/status_badge.svg)](https://codemagic.io/apps/645f5680356332a7b6c82326/sudoku-flutter-workflow/latest_build)
 
 
 ## about
@@ -27,7 +26,7 @@ Download apk for android (preview) -> [github release page](https://github.com/a
 ## environment
 - dart SDK: '>=2.18.6 <3.0.0' // Null-Safety
 - flutter SDK: '^3.0.0'
-- jdk 11
+- jdk 17
 
 ## dependency
 - [sudoku_dart](https://github.com/forfuns/sudoku-dart) (sudoku core opensource  lib  )
@@ -95,6 +94,36 @@ $> flutter build iOS
 # android
 $> flutter build apk
 ```
+
+## release (Google Play)
+
+Pushing a tag `vX.Y.Z` runs [`.github/workflows/release-play-store.yml`](.github/workflows/release-play-store.yml): it builds a signed app bundle and uploads it to the **internal** track of Google Play. Promote it to production from the Play Console.
+
+```shell
+$> git tag v1.0.1
+$> git push origin v1.0.1
+```
+
+The tag is the source of truth for the version (the `version` in `pubspec.yaml` is ignored by the release build):
+
+| tag | versionName | versionCode |
+|---|---|---|
+| `v1.0.1` | `1.0.1` | `10001` |
+| `v1.2.3` | `1.2.3` | `10203` |
+
+### one-time setup
+
+1. Google Cloud console: enable the **Google Play Android Developer API** in a project, create a service account and download a JSON key.
+2. Play Console → *Users and permissions*: invite the service account email, give it access to the app with the *Release apps to testing tracks* permission (and *Release to production* if you change the track to `production`).
+3. Add the repository secrets (Settings → Secrets and variables → Actions):
+
+| secret | value |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | upload keystore, base64 encoded (`base64 -i upload-keystore.jks`) |
+| `ANDROID_KEYSTORE_PASSWORD` | `storePassword` from `key.properties` |
+| `ANDROID_KEY_ALIAS` | `keyAlias` from `key.properties` |
+| `ANDROID_KEY_PASSWORD` | `keyPassword` from `key.properties` |
+| `PLAY_SERVICE_ACCOUNT_JSON` | content of the service account JSON key |
 
 ## more flutter features
 see the [Flutter](https://flutter.dev/) official website
