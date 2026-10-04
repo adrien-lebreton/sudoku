@@ -97,7 +97,9 @@ $> flutter build apk
 
 ## release (Google Play)
 
-Pushing a tag `vX.Y.Z` runs [`.github/workflows/release-play-store.yml`](.github/workflows/release-play-store.yml): it builds a signed app bundle and uploads it to the **internal** track of Google Play. Promote it to production from the Play Console.
+Pushing a tag `vX.Y.Z` runs [`.github/workflows/release-play-store.yml`](.github/workflows/release-play-store.yml): it builds a signed app bundle and uploads it to the **internal** track of Google Play.
+
+Once tested, promote it to production with [`.github/workflows/promote-play-store.yml`](.github/workflows/promote-play-store.yml) (Actions tab, or `gh workflow run promote-play-store.yml -f version=1.0.1 -f rollout=100`).
 
 ```shell
 $> git tag v1.0.1
@@ -114,7 +116,7 @@ The tag is the source of truth for the version (the `version` in `pubspec.yaml` 
 ### one-time setup
 
 1. Google Cloud console: enable the **Google Play Android Developer API** in a project, create a service account and download a JSON key.
-2. Play Console → *Users and permissions*: invite the service account email, give it access to the app with the *Release apps to testing tracks* permission (and *Release to production* if you change the track to `production`).
+2. Play Console → *Users and permissions*: invite the service account email, give it access to the app with the *Release apps to testing tracks* and *Release to production* permissions.
 3. Add the repository secrets (Settings → Secrets and variables → Actions):
 
 | secret | value |

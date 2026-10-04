@@ -1,0 +1,125 @@
+# Promote a release already uploaded to the internal track to production.
+#
+# Run it from the Actions tab or with:
+#   gh workflow run promote-play-store.yml -f version=1.0.2 -f rollout=100
+#
+# The version must already be on the internal track (pushed by release-play-store.yml).
+# The service account needs the "Release to production" permission in the Play Console.
+name: Promote Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to promote (X.Y.Z, must already be on the internal track)'
+        required: true
+        type: string
+      rollout:
+        description: 'Percentage of production users receiving the update'
+        required: true
+        default: '100'
+        type: choice
+        options: ['100', '50', '20', '10', '5', '1']
+      release_notes:
+        description: "What's new (optional, max 500 characters)"
+        required: false
+        type: string
+      notes_language:
+        description: 'Language of the release notes (must exist in the store listing)'
+        required: false
+        default: 'fr-FR'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-play-store
+  cancel-in-progress: false
+
+env:
+  PACKAGE_NAME: com.adrienlebreton.app.sudoku
+  SOURCE_TRACK: internal
+  TARGET_TRACK: production
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Compute version code
+        id: version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Invalid version '$VERSION', expected X.Y.Z"
+            exit 1
+          fi
+          major=$((10#${BASH_REMATCH[1]}))
+          minor=$((10#${BASH_REMATCH[2]}))
+          patch=$((10#${BASH_REMATCH[3]}))
+          echo "name=$major.$minor.$patch" >> "$GITHUB_OUTPUT"
+          echo "code=$((major * 10000 + minor * 100 + patch))" >> "$GITHUB_OUTPUT"
+
+      - name: Install Google auth
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet google-auth requests
+
+      - name: Promote to production
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          RELEASE_NAME: ${{ steps.version.outputs.name }} (${{ steps.version.outputs.code }})
+          ROLLOUT: ${{ inputs.rollout }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          NOTES_LANGUAGE: ${{ inputs.notes_language }}
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" - <<'EOF'
+          import json, os, sys
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import AuthorizedSession
+
+          package = os.environ['PACKAGE_NAME']
+          source, target = os.environ['SOURCE_TRACK'], os.environ['TARGET_TRACK']
+          code = os.environ['VERSION_CODE']
+          rollout = int(os.environ['ROLLOUT'])
+          notes = os.environ.get('RELEASE_NOTES', '').strip()
+
+          creds = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ['PLAY_SERVICE_ACCOUNT_JSON']),
+              scopes=['https://www.googleapis.com/auth/androidpublisher'],
+          )
+          session = AuthorizedSession(creds)
+          edits = f'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{package}/edits'
+
+          def call(method, url, **kwargs):
+              response = session.request(method, url, **kwargs)
+              if not response.ok:
+                  print(f'::error::{method} {url} -> {response.status_code}: {response.text}')
+                  sys.exit(1)
+              return response.json() if response.content else {}
+
+          edit = call('POST', edits)['id']
+
+          source_codes = {
+              c for r in call('GET', f'{edits}/{edit}/tracks/{source}').get('releases', [])
+              for c in r.get('versionCodes', [])
+          }
+          if code not in source_codes:
+              print(f'::error::versionCode {code} is not on the {source} track (found: {sorted(source_codes)})')
+              sys.exit(1)
+
+          release = {'name': os.environ['RELEASE_NAME'], 'versionCodes': [code], 'status': 'completed'}
+          if rollout < 100:
+              release['status'] = 'inProgress'
+              release['userFraction'] = rollout / 100
+          if notes:
+              release['releaseNotes'] = [{'language': os.environ['NOTES_LANGUAGE'], 'text': notes}]
+
+          call('PUT', f'{edits}/{edit}/tracks/{target}', json={'track': target, 'releases': [release]})
+          call('POST', f'{edits}/{edit}:commit')
+          print(f'Promoted versionCode {code} from {source} to {target} ({rollout}% rollout)')
+          EOF
