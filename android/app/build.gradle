@@ -1,11 +1,9 @@
 
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android Gradle plugin, it applies the Kotlin plugin itself.
     id "dev.flutter.flutter-gradle-plugin"
 }
-
-def kotlin_version = '2.1.0'
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
@@ -92,15 +90,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    kotlinOptions {
-        jvmTarget = '17'
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
 flutter {
     source '../..'
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
